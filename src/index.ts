@@ -12,5 +12,7 @@ app.use(express.json())
 route.get("/", (req: Request, res: Response) => {
   res.send("Hello, World!")
 })
-app.listen(PORT, () => `Server running on port ${PORT}`)
+app.listen(PORT, () => {
+  console.log(`Server running: http://localhost:${PORT}`)
+})
 

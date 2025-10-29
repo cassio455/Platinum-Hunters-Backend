@@ -5,24 +5,31 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --watch src --ext ts --exec \"node --loader ts-node/esm src/index.ts\"",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node build/index.js",
     "check": "tsc --noEmit",
     "test": "vitest",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@tsconfig/node22": "^22.0.2",
     "@types/express": "^5.0.3",
-    "nodemon": "^3.1.10",
-    "ts-node-dev": "^2.0.0",
+    "@types/node": "^24.9.2",
+    "eslint": "^9.38.0",
+    "globals": "^16.4.0",
+    "jiti": "^2.6.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
     "vitest": "^4.0.1"
   },
   "dependencies": {
-    "@types/node": "^24.9.1",
     "express": "^5.1.0"
   }
 }
