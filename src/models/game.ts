@@ -1,6 +1,7 @@
 import { ArgumentException } from "../exceptions/argumentException.js";
 
 export interface GameProps{
+    id: string;
     title: string;
     backgroundImage: string;
     releaseDate: string;
@@ -8,7 +9,7 @@ export interface GameProps{
 export class Game {
     private props: GameProps;
     constructor(props: GameProps){
-        if(!props.title || !props.backgroundImage || !props.releaseDate){
+        if(!props.title || !props.backgroundImage || !props.releaseDate || !props.id){
             throw new ArgumentException("Invalid game properties");
         }
         this.props = props;
