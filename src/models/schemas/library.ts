@@ -9,3 +9,13 @@ export const UpdateGameProgressSchema = z.object({
 })
 
 export type GameProgress = z.infer<typeof UpdateGameProgressSchema>;
+
+export const updateGameProgressValidation = z.object({
+    params: z.object({
+        gameId: z.string().uuid()
+    }),
+    body: z.object({
+        progress: z.number().min(0).max(100).optional()
+    }),
+    query: z.object({}).optional()
+});

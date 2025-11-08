@@ -6,21 +6,22 @@ export interface GameProps{
     backgroundImage: string;
     releaseDate: string;
 }
+
 export class Game {
-    private props: GameProps;
+    private _props: GameProps;
     constructor(props: GameProps){
         if(!props.title || !props.backgroundImage || !props.releaseDate || !props.id){
             throw new ArgumentException("Invalid game properties");
         }
-        this.props = props;
+        this._props = { ...props };
     }
     get title(){
-        return this.props.title;
+        return this._props.title;
     }
     get backgroundImage(){
-        return this.props.backgroundImage;
+        return this._props.backgroundImage;
     }
     get releaseDate(){
-        return this.props.releaseDate;
+        return this._props.releaseDate;
     }
 }

@@ -1,0 +1,53 @@
+import { UserProps, User } from "../../models/user.js";
+import { UserModel } from "../../data/documents/userDocument.js";
+import { BadRequestException } from "../../exceptions/httpException.js";
+import { hashPassword } from "../passwordHasher.js";
+
+type CreateUserInput = {
+    username: string;
+    email: string;
+    password: string;
+    profileImageUrl?: string;
+}
+
+type UserDataResponse = {
+    id: string;
+    username: string;
+    email: string;
+    profileImageUrl?: string;
+    createdAt: Date;
+}
+
+export const createUserService = async (userData: CreateUserInput): Promise<UserDataResponse> => {
+    const { username, email, password, profileImageUrl } = userData;
+
+    const existingEmail = await UserModel.findOne({ email: email.toLowerCase() });
+    if (existingEmail) {
+        throw new BadRequestException('Unable to create user. Please check the provided data.');
+    }
+
+    const existingUsername = await UserModel.findOne({ username });
+    if (existingUsername) {
+        throw new BadRequestException('Unable to create user. Please check the provided data.');
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const userEntity = new User({
+        username,
+        email: email.toLowerCase(),
+        passwordHash,
+        profileImageUrl
+    });
+
+    const userDocument = new UserModel(userEntity.toPersistence());
+    await userDocument.save();
+
+    return {
+        id: userEntity.id,
+        username: userEntity.username,
+        email: userEntity.email,
+        profileImageUrl: userEntity.profileImageUrl,
+        createdAt: userEntity.createdAt
+    };
+}
