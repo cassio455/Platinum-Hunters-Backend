@@ -1,62 +1,107 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
-import { updateGameProgressValidation } from "../models/schemas/library.js";
-import { validate } from "../middlewares/validateSchema.js";
-import { Game } from "../models/game.js";
+import { Router, Request, Response, NextFunction } from 'express';
+import { validate } from '../middlewares/validateSchema.js';
+import { LibraryItemStatus } from '../models/libraryItemStatus.js';
+import { 
+  addGameToLibraryValidation, 
+  getLibraryValidation, 
+  updateProgressValidation,
+  removeGameValidation 
+} from '../models/schemas/library.js';
+import { addGameToLibraryService } from '../services/library/addGameToLibraryService.js';
+import { getUserLibraryService } from '../services/library/getUserLibraryService.js';
+import { updateGameProgressService } from '../services/library/updateGameProgressService.js';
+import { removeGameFromLibraryService } from '../services/library/removeGameFromLibraryService.js';
 
 const route = Router();
 
-//GET: Get games list by user ID
-route.get('/library/me/games', async (req: Request, res: Response, next: NextFunction) => {
+route.post(
+  '/library',
+  validate(addGameToLibraryValidation),
+  async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = 1;
-        const games: Game[] = [];
-        
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorized" });
-        }
-        
-        // Substituir dps pelo serviço
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        games.push(new Game({
-            id: "1",
-            title: "Game One",
-            backgroundImage: "http://example.com/game1.jpg",
-            releaseDate: "2023-01-01"
-        }));
-        
-        return res.status(200).json(games);
-    } catch (err) {
-        next(err);
+      const userId = 'temp-user-id';
+      const result = await addGameToLibraryService({
+        userId,
+        ...req.body
+      });
+      
+      res.status(201).json({
+        message: 'Game added to library',
+        data: result
+      });
+    } catch (error) {
+      next(error);
     }
-});
+  }
+);
 
-//POST: Add a new game to user's library
+route.get(
+  '/library',
+  validate(getLibraryValidation),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = 'temp-user-id';
+      const { status, page, limit } = req.query;
+      
+      const result = await getUserLibraryService({
+        userId,
+        status: status as LibraryItemStatus,
+        page: page ? parseInt(page as string) : undefined,
+        limit: limit ? parseInt(limit as string) : undefined
+      });
+      
+      res.json({
+        message: 'Library retrieved',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
-
-//POST: Remove a game from user's library
-
-
-//PATCH: Update game progress in user's library
 route.patch(
-    "/library/:gameId/progress",
-    validate(updateGameProgressValidation),
-    async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { gameId } = req.params;
-            const { progress } = req.body;
-            
-            // Substituir dps pela chamada ao DB!
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            return res.status(200).json({
-                message: "Game progress updated successfully",
-                gameId,
-                ...(progress !== undefined ? { progress } : {}),
-            });
-        } catch (err) {
-            next(err);
-        }
+  '/library/:gameId',
+  validate(updateProgressValidation),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = 'temp-user-id';
+      const { gameId } = req.params;
+      
+      const result = await updateGameProgressService({
+        userId,
+        gameId,
+        ...req.body
+      });
+      
+      res.json({
+        message: 'Progress updated',
+        data: result
+      });
+    } catch (error) {
+      next(error);
     }
+  }
+);
+
+route.delete(
+  '/library/:gameId',
+  validate(removeGameValidation),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = 'temp-user-id';
+      const { gameId } = req.params;
+      
+      const result = await removeGameFromLibraryService({
+        userId,
+        gameId
+      });
+      
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 );
 
 export default route;

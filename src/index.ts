@@ -35,4 +35,3 @@ app.listen(PORT, () => {
   console.log(`Server running: http://localhost:${PORT}`)
   console.log(`Swagger: http://localhost:${PORT}/swagger`)
 })
-

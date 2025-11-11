@@ -4,7 +4,6 @@ import { validate } from "../middlewares/validateSchema.js";
 import { createUserService } from "../services/user/createUserService.js";
 
 const route = Router();
-
 route.post(
     '/users/register',
     validate(createUserValidation),

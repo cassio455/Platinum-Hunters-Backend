@@ -1,5 +1,6 @@
 import { ArgumentException } from "../exceptions/argumentException.js";
 import { generateUUID } from "../utils/uuid.js";
+
 export interface UserProps {
     username : string;
     email : string;
