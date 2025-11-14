@@ -1,6 +1,12 @@
 import { ArgumentException } from "../exceptions/argumentException.js";
 import { generateUUID } from "../utils/uuid.js";
 
+export enum UserRole {
+    USER = "USER",
+    ADMIN = "ADMIN",
+    MOD = "MOD"
+}
+
 export interface UserProps {
     username : string;
     email : string;
