@@ -16,7 +16,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
 
     const secretKey = process.env.JWT_SECRET;
     if (!secretKey) {
-        return res.status(500).json({ message: 'JWT secret key not configured' });
+        return res.status(500).json({ message: 'Internal server error' });
     }
 
     try {

@@ -6,6 +6,7 @@ export interface IUserDocument extends Document {
     email: string;
     passwordHash: string;
     profileImageUrl?: string;
+    roles: string[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -39,6 +40,12 @@ const UserSchema = new Schema<IUserDocument>(
         profileImageUrl: {
             type: String,
             required: false
+        },
+        roles: {
+            type: [String],
+            required: [true, 'Roles são obrigatórias'],
+            default: ['USER'],
+            enum: ['USER', 'ADMIN', 'MOD']
         }
     },
     {

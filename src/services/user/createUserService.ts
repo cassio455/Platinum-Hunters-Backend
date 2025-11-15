@@ -1,4 +1,4 @@
-import { UserProps, User } from "../../models/user.js";
+import { UserProps, User} from "../../models/user.js";
 import { UserModel } from "../../data/documents/userDocument.js";
 import { BadRequestException } from "../../exceptions/httpException.js";
 import { hashPassword } from "../passwordHasher.js";
@@ -18,10 +18,14 @@ type UserDataResponse = {
     createdAt: Date;
 }
 
+export const findUserByEmail = async (email: string) => {
+    return await UserModel.findOne({ email: email.toLowerCase() });
+};
+
 export const createUserService = async (userData: CreateUserInput): Promise<UserDataResponse> => {
     const { username, email, password, profileImageUrl } = userData;
 
-    const existingEmail = await UserModel.findOne({ email: email.toLowerCase() });
+    const existingEmail = await findUserByEmail(email);
     if (existingEmail) {
         throw new BadRequestException('Unable to create user. Please check the provided data.');
     }
