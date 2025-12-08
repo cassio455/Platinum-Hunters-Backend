@@ -68,12 +68,12 @@ route.post(
   validate(postFiltersValidation),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { page, limit, ...filters } = req.body;
+      const { page, limit, genres, plataformas, sort } = req.body;
 
       const result = await getGamesService({
         page: page || 1,
         limit: limit || 20,
-        filters: filters
+        filters: { genres, plataformas, sort }
       });
       
       res.json({
