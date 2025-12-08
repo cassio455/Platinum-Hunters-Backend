@@ -1,3 +1,4 @@
+// src/index.ts
 import 'dotenv/config'
 import express, { type Request, type Response } from "express"
 import swaggerUi from "swagger-ui-express"
@@ -5,6 +6,7 @@ import doc from "./docs/openapi.js"
 import cors from "cors"
 import libraryRoutes from './routes/library.js'
 import userRoutes from './routes/users.js'
+import gameRoutes from './routes/games.js'; // 1. IMPORTAR AS NOVAS ROTAS
 import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 
@@ -21,6 +23,7 @@ app.use(cors())
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(doc))
 app.use(userRoutes)
 app.use(libraryRoutes)
+app.use(gameRoutes); // 2. ADICIONAR AS NOVAS ROTAS AO APP
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, World!')
