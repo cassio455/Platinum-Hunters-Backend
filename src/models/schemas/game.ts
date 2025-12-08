@@ -29,7 +29,7 @@ export const postFiltersValidation = z.object({
   body: z.object({
     genres: z.array(z.string()).optional(),
     plataformas: z.array(z.string()).optional(),
-    sort: z.string().optional(), // Ex: 'rating_desc'
+    sort: z.enum(['rating_desc', 'rating_asc', 'name']).optional(), // Ex: 'rating_desc'
     page: z.number().int().positive().optional(),
     limit: z.number().int().positive().optional()
   }),
