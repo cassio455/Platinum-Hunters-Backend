@@ -319,4 +319,223 @@ export function registerLibraryPaths(registry: OpenAPIRegistry): void {
             },
         },
     });
+
+    // ==================== CUSTOM GAMES DOCUMENTATION ====================
+
+    registry.registerPath({
+        method: 'post',
+        path: '/library/custom-games',
+        description: 'Create a custom/local game that only the user can see',
+        summary: 'Create custom game',
+        tags: ['Library', 'Custom Games'],
+        request: {
+            body: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            nome: z.string(),
+                            backgroundimage: z.string().url().optional(),
+                            plataformas: z.array(z.string()).optional(),
+                            genres: z.array(z.string()).optional(),
+                            ano_de_lancamento: z.number().int().optional(),
+                            description: z.string().optional()
+                        }),
+                        example: {
+                            nome: "My Custom Game",
+                            backgroundimage: "https://example.com/image.jpg",
+                            plataformas: ["PC", "Custom Console"],
+                            genres: ["RPG", "Adventure"],
+                            ano_de_lancamento: 2023,
+                            description: "A game I'm developing"
+                        }
+                    }
+                }
+            }
+        },
+        responses: {
+            201: {
+                description: 'Custom game created successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string(),
+                            data: z.object({
+                                _id: z.string(),
+                                userId: z.string(),
+                                nome: z.string(),
+                                backgroundimage: z.string().optional(),
+                                plataformas: z.array(z.string()),
+                                genres: z.array(z.string()),
+                                ano_de_lancamento: z.number().optional(),
+                                description: z.string().optional(),
+                                createdAt: z.string(),
+                                updatedAt: z.string()
+                            })
+                        })
+                    }
+                }
+            },
+            409: {
+                description: 'Game with this name already exists',
+                content: {
+                    'application/json': {
+                        schema: z.object({ message: z.string() })
+                    }
+                }
+            }
+        }
+    });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/library/custom-games',
+        description: 'Get all custom games created by the user',
+        summary: 'Get custom games',
+        tags: ['Library', 'Custom Games'],
+        request: {
+            query: z.object({
+                page: z.string().optional(),
+                limit: z.string().optional()
+            })
+        },
+        responses: {
+            200: {
+                description: 'Custom games retrieved successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string(),
+                            data: z.object({
+                                items: z.array(z.object({
+                                    _id: z.string(),
+                                    userId: z.string(),
+                                    nome: z.string(),
+                                    backgroundimage: z.string().optional(),
+                                    plataformas: z.array(z.string()),
+                                    genres: z.array(z.string()),
+                                    ano_de_lancamento: z.number().optional(),
+                                    description: z.string().optional(),
+                                    createdAt: z.string(),
+                                    updatedAt: z.string()
+                                })),
+                                total: z.number(),
+                                page: z.number(),
+                                limit: z.number(),
+                                totalPages: z.number()
+                            })
+                        })
+                    }
+                }
+            }
+        }
+    });
+
+    registry.registerPath({
+        method: 'patch',
+        path: '/library/custom-games/{gameId}',
+        description: 'Update a custom game',
+        summary: 'Update custom game',
+        tags: ['Library', 'Custom Games'],
+        request: {
+            params: z.object({
+                gameId: z.string()
+            }),
+            body: {
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            nome: z.string().optional(),
+                            backgroundimage: z.string().url().optional(),
+                            plataformas: z.array(z.string()).optional(),
+                            genres: z.array(z.string()).optional(),
+                            ano_de_lancamento: z.number().int().optional(),
+                            description: z.string().optional()
+                        })
+                    }
+                }
+            }
+        },
+        responses: {
+            200: {
+                description: 'Custom game updated successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string(),
+                            data: z.object({
+                                _id: z.string(),
+                                userId: z.string(),
+                                nome: z.string(),
+                                backgroundimage: z.string().optional(),
+                                plataformas: z.array(z.string()),
+                                genres: z.array(z.string()),
+                                ano_de_lancamento: z.number().optional(),
+                                description: z.string().optional(),
+                                createdAt: z.string(),
+                                updatedAt: z.string()
+                            })
+                        })
+                    }
+                }
+            },
+            403: {
+                description: 'Forbidden - not your game',
+                content: {
+                    'application/json': {
+                        schema: z.object({ message: z.string() })
+                    }
+                }
+            },
+            404: {
+                description: 'Custom game not found',
+                content: {
+                    'application/json': {
+                        schema: z.object({ message: z.string() })
+                    }
+                }
+            }
+        }
+    });
+
+    registry.registerPath({
+        method: 'delete',
+        path: '/library/custom-games/{gameId}',
+        description: 'Delete a custom game and remove it from library',
+        summary: 'Delete custom game',
+        tags: ['Library', 'Custom Games'],
+        request: {
+            params: z.object({
+                gameId: z.string()
+            })
+        },
+        responses: {
+            200: {
+                description: 'Custom game deleted successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string(),
+                            gameId: z.string()
+                        })
+                    }
+                }
+            },
+            403: {
+                description: 'Forbidden - not your game',
+                content: {
+                    'application/json': {
+                        schema: z.object({ message: z.string() })
+                    }
+                }
+            },
+            404: {
+                description: 'Custom game not found',
+                content: {
+                    'application/json': {
+                        schema: z.object({ message: z.string() })
+                    }
+                }
+            }
+        }
+    });
 }

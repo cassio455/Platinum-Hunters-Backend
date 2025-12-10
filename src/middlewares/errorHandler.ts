@@ -13,13 +13,14 @@ export const errorHandler = (
     console.error('Error: ', {
         name: error.name,
         message: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        stack: error.stack,
+        url: req.url,
+        method: req.method
     });
 
     if (error instanceof HttpException) {
         return res.status(error.statusCode).json({
-            message: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+            message: error.message
         });
     }
 
@@ -41,15 +42,13 @@ export const errorHandler = (
 
     if (error.name === 'MongoError' || error.name === 'MongoServerError') {
         return res.status(500).json({
-            message: 'Database error',
-            ...(process.env.NODE_ENV === 'development' && { details: error.message })
+            message: 'Database error occurred'
         });
     }
 
     if (error.name === 'ValidationError') {
         return res.status(400).json({
-            message: 'Validation error',
-            ...(process.env.NODE_ENV === 'development' && { details: error.message })
+            message: 'Validation error'
         });
     }
 
@@ -60,11 +59,7 @@ export const errorHandler = (
     }
 
     return res.status(500).json({
-        message: 'Internal server error',
-        ...(process.env.NODE_ENV === 'development' && { 
-            error: error.message,
-            stack: error.stack 
-        })
+        message: 'Internal server error'
     });
 };
 

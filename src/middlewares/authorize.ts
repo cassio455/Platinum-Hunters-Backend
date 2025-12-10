@@ -1,20 +1,23 @@
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from './authMiddleware.js';
 import { UserRole } from '../models/user.js';
-
+/**
+* Middleware to authorize users based on their roles
+* @param allowedRoles - Array of roles that are allowed to access the route
+*/
 export const authorize = (...allowedRoles: UserRole[]) => {
-    return (req: AuthRequest, res: Response, next: NextFunction) => {
-        if (!req.user) {
+    return (req: Request, res: Response, next: NextFunction) => {
+        const authReq = req as AuthRequest;
+        
+        if (!authReq.user) {
             return res.status(401).json({ message: 'Unauthorized: No user found' });
         }
 
-        const hasRole = req.user.roles.some(role => allowedRoles.includes(role));
+        const hasRole = authReq.user.roles.some(role => allowedRoles.includes(role));
         
         if (!hasRole) {
             return res.status(403).json({ 
-                message: 'Forbidden',
-                requiredRoles: allowedRoles,
-                userRoles: req.user.roles
+                message: 'Forbidden: Insufficient permissions'
             });
         }
 

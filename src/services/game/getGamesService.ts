@@ -1,11 +1,9 @@
-// src/services/game/getGamesService.ts
 import { GameModel } from "../../data/documents/gameDocument.js";
 
-// Tipos para os filtros e paginação
 type GetGamesInput = {
   page?: number;
   limit?: number;
-  q?: string; // Para busca textual
+  q?: string;
   filters?: {
     genres?: string[];
     plataformas?: string[];
@@ -14,37 +12,31 @@ type GetGamesInput = {
 }
 
 export const getGamesService = async (input: GetGamesInput) => {
-  const { page = 1, limit = 20, q, filters = {} } = input;
+  const { page = 1, q, filters = {} } = input;
+  const limit = Math.min(input.limit || 20, 50);
 
   const filterQuery: any = {};
   
-  // 1. Filtro de Busca Textual (do GET /games)
   if (q) {
-    // '$search' utiliza o índice de texto que criamos no Model
     filterQuery.$text = { $search: q };
   }
 
-  // 2. Filtros do Body (do POST /games/filters)
   if (filters.genres && filters.genres.length > 0) {
-    // $in garante que o jogo tenha QUALQUER um dos gêneros da lista
     filterQuery.genres = { $in: filters.genres };
   }
   if (filters.plataformas && filters.plataformas.length > 0) {
-    // $in garante que o jogo esteja em QUALQUER uma das plataformas
     filterQuery.plataformas = { $in: filters.plataformas };
   }
 
-  // 3. Lógica de Ordenação
   const sortQuery: any = {};
   if (filters.sort === 'rating_desc') {
-    sortQuery.rating = -1; // -1 para descendente
+    sortQuery.rating = -1;
   } else if (filters.sort === 'rating_asc') {
-    sortQuery.rating = 1; // 1 para ascendente
+    sortQuery.rating = 1; 
   } else {
-    sortQuery.nome = 1; // Ordem alfabética padrão
+    sortQuery.nome = 1;
   }
 
-  // 4. Lógica de Paginação (similar ao seu getUserLibraryService)
   const skip = (page - 1) * limit;
 
   const items = await GameModel
@@ -52,17 +44,15 @@ export const getGamesService = async (input: GetGamesInput) => {
     .sort(sortQuery)
     .skip(skip)
     .limit(limit)
-    .lean(); // .lean() para performance (retorna JSON puro)
+    .lean();
 
   const total = await GameModel.countDocuments(filterQuery);
 
   return {
     items,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit)
-    }
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit)
   };
 }

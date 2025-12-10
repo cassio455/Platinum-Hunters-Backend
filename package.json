@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "seed:games": "tsx src/scripts/seedGames.ts"
   },
   "author": "",
   "license": "ISC",

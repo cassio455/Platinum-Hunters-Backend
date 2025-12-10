@@ -1,11 +1,13 @@
 import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
 import { registerUserPaths } from './paths/users.js';
 import { registerLibraryPaths } from './paths/library.js';
+import { registerGamesPaths } from './paths/games.js';
 
 const registry = new OpenAPIRegistry();
 
 registerUserPaths(registry);
 registerLibraryPaths(registry);
+registerGamesPaths(registry);
 
 const generator = new OpenApiGeneratorV3(registry.definitions);
 const doc = generator.generateDocument({
@@ -21,6 +23,21 @@ const doc = generator.generateDocument({
             description: 'Development Server'
         }
     ],
+    components: {
+        securitySchemes: {
+            BearerAuth: {
+                type: 'http',
+                scheme: 'bearer',
+                bearerFormat: 'JWT',
+                description: 'Enter your JWT token in the format: Bearer <token>'
+            }
+        }
+    },
+    security: [
+        {
+            BearerAuth: []
+        }
+    ],
     tags: [
         {
             name: 'Users',
@@ -29,6 +46,14 @@ const doc = generator.generateDocument({
         {
             name: 'Library',
             description: 'User game library related operations'
+        },
+        {
+            name: 'Games',
+            description: 'Game catalog and search operations'
+        },
+        {
+            name: 'Custom Games',
+            description: 'User custom/local games operations'
         }
     ]
 });

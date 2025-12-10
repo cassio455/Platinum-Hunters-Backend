@@ -11,13 +11,6 @@ const statusEnum = z.enum([
   LibraryItemStatus.WISHLIST
 ]);
 
-export const UpdateGameProgressSchema = z.object({
-    gameId: z.string().uuid().openapi({description: "The unique identifier of the user's game"}),
-    progress: z.number().min(0).max(100).optional().openapi({description: "The user's progress in the game, represented as a percentage"})
-})
-
-export type GameProgress = z.infer<typeof UpdateGameProgressSchema>;
-
 export const addGameToLibraryValidation = z.object({
   body: z.object({
     gameId: z.string().min(1, 'Game ID is required'),
@@ -58,14 +51,4 @@ export const removeGameValidation = z.object({
   }),
   body: z.object({}),
   query: z.object({})
-});
-
-export const updateGameProgressValidation = z.object({
-    params: z.object({
-        gameId: z.string().uuid()
-    }),
-    body: z.object({
-        progress: z.number().min(0).max(100).optional()
-    }),
-    query: z.object({}).optional()
 });

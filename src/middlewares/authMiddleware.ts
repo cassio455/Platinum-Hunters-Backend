@@ -1,4 +1,4 @@
-import { TokenExpiredError, verify} from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { UserPayload, UserPayloadSchema } from '../auth/token.js';
 
@@ -12,7 +12,12 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'No token provided' });
     }
+    
     const token = authHeader.split(' ')[1];
+    
+    if (!token || token.trim() === '') {
+        return res.status(401).json({ message: 'No token provided' });
+    }
 
     const secretKey = process.env.JWT_SECRET;
     if (!secretKey) {
@@ -20,22 +25,16 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     }
 
     try {
-        verify(token, secretKey, (err, decoded) => {
-            if (err) {
-                if (err instanceof TokenExpiredError) {
-                    return res.status(401).json({ message: 'Token expired' });
-                }
-                return res.status(401).json({ message: 'Invalid token' });
-            }
-            try {
-                (req as AuthRequest).user = UserPayloadSchema.parse(decoded);
-                next();
-            } catch (validationError) {
-                return res.status(401).json({ message: 'Invalid token payload' });
-            }
-        });
-    } catch (error) {
-        if (error instanceof TokenExpiredError) {
+        const decoded = jwt.verify(token, secretKey);
+        
+        try {
+            (req as AuthRequest).user = UserPayloadSchema.parse(decoded);
+            next();
+        } catch (validationError) {
+            return res.status(401).json({ message: 'Invalid token payload' });
+        }
+    } catch (error: any) {
+        if (error.name === 'TokenExpiredError') {
             return res.status(401).json({ message: 'Token expired' });
         }
         return res.status(401).json({ message: 'Invalid token' });

@@ -4,7 +4,7 @@ import {
   getGamesValidation, 
   getGameDetailsValidation, 
   postFiltersValidation 
-} from "../models/schemas/game.js"; // Criaremos este arquivo
+} from "../models/schemas/game.js";
 import { getGamesService } from "../services/game/getGamesService.js";
 import { getGameDetailsService } from "../services/game/getGameDetailsService.js";
 
