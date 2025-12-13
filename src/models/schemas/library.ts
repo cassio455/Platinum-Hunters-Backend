@@ -27,7 +27,7 @@ export const getLibraryValidation = z.object({
     page: z.string().regex(/^\d+$/).optional(),
     limit: z.string().regex(/^\d+$/).optional()
   }),
-  body: z.object({})
+  body: z.object({}).optional()
 });
 
 export const updateProgressValidation = z.object({
@@ -49,6 +49,6 @@ export const removeGameValidation = z.object({
   params: z.object({
     gameId: z.string().min(1, 'Game ID is required')
   }),
-  body: z.object({}),
+  body: z.object({}).optional(),
   query: z.object({})
 });

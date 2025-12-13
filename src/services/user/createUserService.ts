@@ -1,7 +1,8 @@
-import { UserProps, User} from "../../models/user.js";
+import { UserProps, User, UserRole} from "../../models/user.js";
 import { UserModel } from "../../data/documents/userDocument.js";
 import { BadRequestException } from "../../exceptions/httpException.js";
 import { hashPassword } from "../passwordHasher.js";
+import { generateToken } from "../../auth/token.js";
 
 type CreateUserInput = {
     username: string;
@@ -16,6 +17,7 @@ type UserDataResponse = {
     email: string;
     profileImageUrl?: string;
     createdAt: Date;
+    token: string;
 }
 
 export const findUserByEmail = async (email: string) => {
@@ -47,11 +49,19 @@ export const createUserService = async (userData: CreateUserInput): Promise<User
     const userDocument = new UserModel(userEntity.toPersistence());
     await userDocument.save();
 
+    const token = generateToken({
+        userId: userEntity.id,
+        email: userEntity.email,
+        username: userEntity.username,
+        roles: userEntity.roles as UserRole[]
+    });
+
     return {
         id: userEntity.id,
         username: userEntity.username,
         email: userEntity.email,
         profileImageUrl: userEntity.profileImageUrl,
-        createdAt: userEntity.createdAt
+        createdAt: userEntity.createdAt,
+        token
     };
 }

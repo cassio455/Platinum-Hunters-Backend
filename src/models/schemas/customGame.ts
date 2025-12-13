@@ -25,7 +25,7 @@ export const getCustomGamesValidation = z.object({
       { message: 'Limit must be between 1 and 50' }
     )
   }),
-  body: z.object({})
+  body: z.object({}).optional()
 });
 
 export const updateCustomGameValidation = z.object({
@@ -49,6 +49,6 @@ export const deleteCustomGameValidation = z.object({
   params: z.object({
     gameId: z.string().min(1, 'Game ID is required')
   }),
-  body: z.object({}),
+  body: z.object({}).optional(),
   query: z.object({})
 });

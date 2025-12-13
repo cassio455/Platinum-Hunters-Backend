@@ -122,7 +122,17 @@ export function registerLibraryPaths(registry: OpenAPIRegistry): void {
                                     platinum: z.boolean(),
                                     hoursPlayed: z.number(),
                                     createdAt: z.string().datetime(),
-                                    updatedAt: z.string().datetime()
+                                    updatedAt: z.string().datetime(),
+                                    gameDetails: z.object({
+                                        nome: z.string(),
+                                        plataformas: z.array(z.string()).optional(),
+                                        genres: z.array(z.string()).optional(),
+                                        rating: z.number().optional(),
+                                        playtime: z.number().optional(),
+                                        ratings_count: z.number().optional(),
+                                        backgroundimage: z.string().optional(),
+                                        ano_de_lancamento: z.number().optional()
+                                    }).nullable()
                                 })),
                                 pagination: z.object({
                                     page: z.number(),
@@ -145,7 +155,17 @@ export function registerLibraryPaths(registry: OpenAPIRegistry): void {
                                         platinum: false,
                                         hoursPlayed: 25,
                                         createdAt: "2025-11-11T10:30:00.000Z",
-                                        updatedAt: "2025-11-11T15:45:00.000Z"
+                                        updatedAt: "2025-11-11T15:45:00.000Z",
+                                        gameDetails: {
+                                            nome: "Grand Theft Auto V",
+                                            plataformas: ["PlayStation 5", "PlayStation 4", "PC"],
+                                            genres: ["Action", "Adventure"],
+                                            rating: 4.47,
+                                            playtime: 31,
+                                            ratings_count: 6805,
+                                            backgroundimage: "https://media.rawg.io/media/games/456/456dea5e1c7e3cd07060c14e96612001.jpg",
+                                            ano_de_lancamento: 2013
+                                        }
                                     }
                                 ],
                                 pagination: {

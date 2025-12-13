@@ -35,7 +35,8 @@ export function registerUserPaths(registry: OpenAPIRegistry): void {
                                 username: z.string(),
                                 email: z.string().email(),
                                 profileImageUrl: z.string().optional(),
-                                createdAt: z.string().datetime()
+                                createdAt: z.string().datetime(),
+                                token: z.string()
                             })
                         }),
                         example: {
@@ -44,7 +45,8 @@ export function registerUserPaths(registry: OpenAPIRegistry): void {
                                 id: "550e8400-e29b-41d4-a716-446655440000",
                                 username: "johndoe",
                                 email: "john@example.com",
-                                createdAt: "2025-11-07T10:30:00.000Z"
+                                createdAt: "2025-11-07T10:30:00.000Z",
+                                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                             }
                         }
                     } 
