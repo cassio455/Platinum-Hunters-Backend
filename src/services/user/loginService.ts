@@ -1,48 +1,48 @@
-import { UserProps, User, UserRole } from "../../models/user.js";
 import { UserModel } from "../../data/documents/userDocument.js";
-import { BadRequestException } from "../../exceptions/httpException.js";
-import { comparePassword } from "../../services/passwordHasher.js";
 import { generateToken } from "../../auth/token.js";
-import { findUserByEmail } from "./createUserService.js";
+import { BadRequestException } from "../../exceptions/httpException.js";
+import { comparePassword } from "../passwordHasher.js";
 
-interface LoginCredentialsInput {
-    email: string;
-    password: string;
+interface LoginUserDto {
+  email: string;
+  password: string;
 }
 
-type UserDataResponse = {
-    id: string;
-    username: string;
-    email: string;
-    profileImageUrl?: string;
-    token: string;
-}
+export const loginUserService = async (credentials: LoginUserDto) => {
+  const { email, password } = credentials;
 
-export const loginUserService = async (credentials: LoginCredentialsInput): Promise<UserDataResponse> => {
-    const { email, password } = credentials;
+  // Busca o usuário no BANCO
+  const userDocument = await UserModel.findOne({ email: email.toLowerCase() });
 
-    const user = await findUserByEmail(email);
-    if (!user) {
-        throw new BadRequestException('Invalid email or password');
-    }
+  if (!userDocument) {
+    throw new BadRequestException("Invalid email or password");
+  }
 
-    const isPasswordValid = await comparePassword(password, user.passwordHash);
-    if (!isPasswordValid) {
-        throw new BadRequestException('Invalid email or password');
-    }
+  const passwordIsValid = await comparePassword(password, userDocument.passwordHash);
 
-    const token = generateToken({
-        userId: user._id,
-        email: user.email,
-        username: user.username,
-        roles: user.roles as UserRole[]
-    });
+  if (!passwordIsValid) {
+    throw new BadRequestException("Invalid email or password");
+  }
 
-    return {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        profileImageUrl: user.profileImageUrl,
-        token
-    };
+  const token = generateToken({
+    userId: userDocument._id.toString(), 
+    email: userDocument.email,
+    username: userDocument.username,
+    roles: userDocument.roles as any
+  });
+
+  // --- MUDANÇA AQUI: Retornamos o pacote completo de dados ---
+  return {
+    id: userDocument._id.toString(),
+    username: userDocument.username,
+    email: userDocument.email,
+    profileImageUrl: userDocument.profileImageUrl,
+    // Dados do jogo agora incluídos:
+    coins: userDocument.coins || 0,
+    rankingPoints: userDocument.rankingPoints || 0,
+    completedChallenges: userDocument.completedChallenges || [],
+    ownedTitles: userDocument.ownedTitles || [],
+    equippedTitle: userDocument.equippedTitle || null,
+    token,
+  };
 };
