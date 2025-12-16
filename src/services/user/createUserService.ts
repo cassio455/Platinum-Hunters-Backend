@@ -1,4 +1,6 @@
-import { UserProps, User, UserRole} from "../../models/user.js";
+// src/services/user/createUserService.ts
+
+import { User, UserRole} from "../../models/user.js";
 import { UserModel } from "../../data/documents/userDocument.js";
 import { BadRequestException } from "../../exceptions/httpException.js";
 import { hashPassword } from "../passwordHasher.js";
@@ -39,6 +41,7 @@ export const createUserService = async (userData: CreateUserInput): Promise<User
 
     const passwordHash = await hashPassword(password);
 
+    // Cria a entidade de domínio
     const userEntity = new User({
         username,
         email: email.toLowerCase(),
@@ -46,18 +49,24 @@ export const createUserService = async (userData: CreateUserInput): Promise<User
         profileImageUrl
     });
 
+    // Prepara para salvar no banco
     const userDocument = new UserModel(userEntity.toPersistence());
+    
+    // SALVA NO BANCO (O MongoDB gera o _id real aqui)
     await userDocument.save();
 
+    // === CORREÇÃO CRÍTICA AQUI ===
+    // Antes estava: userId: userEntity.id
+    // Mudamos para: userId: userDocument.id (Para usar o ID real do MongoDB)
     const token = generateToken({
-        userId: userEntity.id,
+        userId: userDocument.id, 
         email: userEntity.email,
         username: userEntity.username,
         roles: userEntity.roles as UserRole[]
     });
 
     return {
-        id: userEntity.id,
+        id: userDocument.id, // Retornamos o ID do banco também
         username: userEntity.username,
         email: userEntity.email,
         profileImageUrl: userEntity.profileImageUrl,
