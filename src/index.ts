@@ -6,7 +6,9 @@ import doc from "./docs/openapi.js"
 import cors from "cors"
 import libraryRoutes from './routes/library.js'
 import userRoutes from './routes/users.js'
-import gameRoutes from './routes/games.js'; // 1. IMPORTAR AS NOVAS ROTAS
+import gameRoutes from './routes/games.js';
+import genreRoutes from './routes/genres.js';
+import platformRoutes from './routes/platforms.js';
 import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 
@@ -23,7 +25,9 @@ app.use(cors())
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(doc))
 app.use(userRoutes)
 app.use(libraryRoutes)
-app.use(gameRoutes); // 2. ADICIONAR AS NOVAS ROTAS AO APP
+app.use(gameRoutes);
+app.use(genreRoutes);
+app.use(platformRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, World!')
