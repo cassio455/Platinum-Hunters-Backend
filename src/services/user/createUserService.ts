@@ -1,4 +1,4 @@
-import { UserProps, User, UserRole} from "../../models/user.js";
+import { User, UserRole} from "../../models/user.js";
 import { UserModel } from "../../data/documents/userDocument.js";
 import { BadRequestException } from "../../exceptions/httpException.js";
 import { hashPassword } from "../passwordHasher.js";
@@ -47,17 +47,17 @@ export const createUserService = async (userData: CreateUserInput): Promise<User
     });
 
     const userDocument = new UserModel(userEntity.toPersistence());
-    await userDocument.save();
 
+    await userDocument.save();
     const token = generateToken({
-        userId: userEntity.id, 
+        userId: userDocument.id, 
         email: userEntity.email,
         username: userEntity.username,
         roles: userEntity.roles as UserRole[]
     });
 
     return {
-        id: userEntity.id,
+        id: userDocument.id,
         username: userEntity.username,
         email: userEntity.email,
         profileImageUrl: userEntity.profileImageUrl,
