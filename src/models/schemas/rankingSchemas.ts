@@ -1,9 +1,19 @@
 import { z } from "zod";
 
-// Validação para Criar/Editar Título
+// Validação para Criar Título
 export const manageTitleSchema = z.object({
   body: z.object({
-    id: z.string().nullable().optional(), // Opcional pois na criação não tem ID ainda
+    name: z.string().min(1, "O nome do título é obrigatório"),
+    cost: z.number().min(0, "O custo não pode ser negativo"),
+  }),
+});
+
+// Validação para Atualizar Título
+export const updateTitleSchema = z.object({
+  params: z.object({
+    id: z.string().uuid("ID deve ser um UUID válido"),
+  }),
+  body: z.object({
     name: z.string().min(1, "O nome do título é obrigatório"),
     cost: z.number().min(0, "O custo não pode ser negativo"),
   }),
@@ -12,14 +22,14 @@ export const manageTitleSchema = z.object({
 // Validação para Deletar Título (valida o ID na URL)
 export const deleteTitleSchema = z.object({
   params: z.object({
-    id: z.string().min(1, "ID inválido"),
+    id: z.string().uuid("ID deve ser um UUID válido"),
   }),
 });
 
 // Validação para Criar/Editar Desafio
 export const manageChallengeSchema = z.object({
   body: z.object({
-    day: z.number({ required_error: "O dia é obrigatório" }),
+    day: z.number(),
     title: z.string().min(1, "O título é obrigatório"),
     points: z.number().min(1, "Os pontos devem ser maiores que 0"),
   }),
@@ -37,7 +47,6 @@ export const deleteChallengeSchema = z.object({
 export const completeChallengeSchema = z.object({
   body: z.object({
     day: z.number(),
-    points: z.number(),
   }),
 });
 

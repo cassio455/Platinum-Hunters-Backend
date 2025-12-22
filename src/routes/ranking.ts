@@ -1,11 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, AuthRequest } from '../middlewares/authMiddleware.js';
 import { validate } from '../middlewares/validateSchema.js';
-import UserModel from '../models/mongoose/UserModel.js'; // Import default
+import { UserModel } from '../data/documents/userDocument.js';
+import { UserRankingDataModel } from '../data/documents/userRankingDataDocument.js';
+import { CompletedChallengeModel } from '../data/documents/completedChallengeDocument.js';
 import ChallengeModel from '../models/ChallengeModel.js';
 import TitleModel from '../models/TitleModel.js';
 import { 
-    manageTitleSchema, 
+    manageTitleSchema,
+    updateTitleSchema, 
     deleteTitleSchema, 
     manageChallengeSchema, 
     deleteChallengeSchema, 
@@ -40,21 +43,24 @@ route.get('/challenges', async (req: Request, res: Response) => {
 
 route.get('/ranking', async (req: Request, res: Response) => {
     try {
-        const users = await UserModel.find()
+        const rankingData = await UserRankingDataModel.find()
             .sort({ rankingPoints: -1 })
             .limit(50)
-            .select('username rankingPoints coins equippedTitle profileImageUrl completedChallenges');
+            .populate('userId', 'username profileImageUrl');
         
-        const formattedUsers = users.map(u => ({
-            id: u._id,
-            name: u.username,
-            avatar: u.profileImageUrl || "https://i.pravatar.cc/100?img=3",
-            rankingPoints: u.rankingPoints || 0,
-            equippedTitle: u.equippedTitle,
-            platinums: u.platinums || 0,
-            totalTrophies: u.totalTrophies || 0,
-            completedChallenges: u.completedChallenges || [] 
+        const formattedUsers = await Promise.all(rankingData.map(async (data: any) => {
+            const completedChallenges = await CompletedChallengeModel.find({ userId: data.userId._id }).select('challengeDay');
+            
+            return {
+                id: data.userId._id,
+                name: data.userId.username,
+                avatar: data.userId.profileImageUrl || "https://i.pravatar.cc/100?img=3",
+                rankingPoints: data.rankingPoints || 0,
+                equippedTitle: data.equippedTitle,
+                completedChallenges: completedChallenges.map((c: any) => c.challengeDay)
+            };
         }));
+        
         res.json(formattedUsers);
     } catch (error) {
         res.status(500).json({ message: "Erro ao buscar ranking" });
@@ -66,21 +72,33 @@ route.get('/ranking', async (req: Request, res: Response) => {
 // Gerenciar Títulos
 route.post('/shop/manage/title', authMiddleware, authorize(UserRole.ADMIN), validate(manageTitleSchema), async (req: Request, res: Response) => {
     try {
-        const { id, name, cost } = req.body; 
-        if (id) {
-            const title = await TitleModel.findById(id);
-            if (!title) return res.status(404).json({ message: "Título não encontrado." });
-            title.name = name;
-            title.cost = cost;
-            await title.save();
-            return res.json({ message: "Título atualizado!", title });
-        } else {
-            const newTitle = await TitleModel.create({ name, cost });
-            return res.status(201).json({ message: "Título criado!", title: newTitle });
-        }
+        const { name, cost } = req.body;
+        const newTitle = await TitleModel.create({ name, cost });
+        return res.status(201).json({ message: "Título criado!", title: newTitle });
     } catch (error: any) {
         if (error.code === 11000) return res.status(400).json({ message: "Já existe um título com este nome." });
         res.status(500).json({ message: "Erro ao salvar título." });
+    }
+});
+
+route.put('/shop/manage/title/:id', authMiddleware, authorize(UserRole.ADMIN), validate(updateTitleSchema), async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, cost } = req.body;
+        
+        const title = await TitleModel.findById(id);
+        if (!title) {
+            return res.status(404).json({ message: "Título não encontrado." });
+        }
+        
+        title.name = name;
+        title.cost = cost;
+        await title.save();
+        
+        return res.json({ message: "Título atualizado!", title });
+    } catch (error: any) {
+        if (error.code === 11000) return res.status(400).json({ message: "Já existe um título com este nome." });
+        res.status(500).json({ message: "Erro ao atualizar título." });
     }
 });
 
@@ -117,7 +135,7 @@ route.delete('/ranking/manage/challenge/:day', authMiddleware, authorize(UserRol
     try {
         const day = parseInt(req.params.day);
         await ChallengeModel.deleteOne({ day });
-        await UserModel.updateMany({ completedChallenges: day }, { $pull: { completedChallenges: day } });
+        await CompletedChallengeModel.deleteMany({ challengeDay: day });
         return res.json({ message: "Desafio excluído e histórico limpo!", day });
     } catch (error) {
         res.status(500).json({ message: "Erro ao excluir desafio." });
@@ -128,27 +146,55 @@ route.delete('/ranking/manage/challenge/:day', authMiddleware, authorize(UserRol
 
 route.post('/ranking/complete', authMiddleware, validate(completeChallengeSchema), async (req: Request, res: Response) => {
     try {
-        const { day, points } = req.body;
+        const { day } = req.body;
         
-        // CORREÇÃO AQUI: Usando .userId conforme seu token.ts
         const authReq = req as AuthRequest;
         const userId = authReq.user.userId;
 
+        // Verificar se o usuário existe
         const user = await UserModel.findById(userId);
-        
         if (!user) {
             return res.status(404).json({ message: "Usuário não encontrado" });
         }
 
-        if (!user.completedChallenges) user.completedChallenges = [];
-        if (user.completedChallenges.includes(day)) return res.status(400).json({ message: "Desafio já completado." });
-        
-        user.rankingPoints = (user.rankingPoints || 0) + points;
-        user.coins = (user.coins || 0) + points;
-        user.completedChallenges.push(day);
-        
-        await user.save();
-        res.json({ message: "Desafio completado!", newPoints: user.rankingPoints, newCoins: user.coins, completedChallenges: user.completedChallenges });
+        // Buscar o desafio para obter os pontos corretos
+        const challenge = await ChallengeModel.findOne({ day });
+        if (!challenge) {
+            return res.status(404).json({ message: "Desafio não encontrado" });
+        }
+
+        // Verificar se já completou
+        const alreadyCompleted = await CompletedChallengeModel.findOne({ userId, challengeDay: day });
+        if (alreadyCompleted) {
+            return res.status(400).json({ message: "Desafio já completado." });
+        }
+
+        // Criar registro de desafio completado
+        await CompletedChallengeModel.create({
+            userId,
+            challengeDay: day,
+            pointsEarned: challenge.points
+        });
+
+        // Atualizar ou criar dados de ranking
+        let rankingData = await UserRankingDataModel.findOne({ userId });
+        if (!rankingData) {
+            rankingData = await UserRankingDataModel.create({ userId, rankingPoints: 0, coins: 0 });
+        }
+
+        rankingData.rankingPoints += challenge.points;
+        rankingData.coins += challenge.points;
+        await rankingData.save();
+
+        // Buscar todos os desafios completados
+        const completedChallenges = await CompletedChallengeModel.find({ userId }).select('challengeDay');
+
+        res.json({ 
+            message: "Desafio completado!", 
+            newPoints: rankingData.rankingPoints, 
+            newCoins: rankingData.coins, 
+            completedChallenges: completedChallenges.map(c => c.challengeDay)
+        });
     } catch (error) {
         console.error("Erro ao completar desafio:", error);
         res.status(500).json({ message: "Erro ao completar desafio" });
@@ -162,19 +208,31 @@ route.post('/shop/buy', authMiddleware, validate(buyTitleSchema), async (req: Re
         const authReq = req as AuthRequest;
         const userId = authReq.user.userId;
 
+        // Verificar se o usuário existe
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "Usuário não encontrado" });
         
-        if (user.coins < cost) return res.status(400).json({ message: "Moedas insuficientes" });
-        if (user.ownedTitles && user.ownedTitles.includes(title)) return res.status(400).json({ message: "Você já possui este título" });
+        // Obter ou criar dados de ranking
+        let rankingData = await UserRankingDataModel.findOne({ userId });
+        if (!rankingData) {
+            rankingData = await UserRankingDataModel.create({ userId, rankingPoints: 0, coins: 0 });
+        }
+
+        const userCoins = rankingData.coins || 0;
+        if (userCoins < cost) return res.status(400).json({ message: "Moedas insuficientes" });
+        if (rankingData.ownedTitles && rankingData.ownedTitles.includes(title)) {
+            return res.status(400).json({ message: "Você já possui este título" });
+        }
         
-        user.coins -= cost;
-        if (!user.ownedTitles) user.ownedTitles = [];
-        user.ownedTitles.push(title);
+        rankingData.coins = userCoins - cost;
+        if (!rankingData.ownedTitles) rankingData.ownedTitles = [];
+        rankingData.ownedTitles.push(title);
         
-        await user.save();
-        res.json({ message: "Título comprado!", coins: user.coins, ownedTitles: user.ownedTitles });
-    } catch (error) { res.status(500).json({ message: "Erro ao comprar título" }); }
+        await rankingData.save();
+        res.json({ message: "Título comprado!", coins: rankingData.coins, ownedTitles: rankingData.ownedTitles });
+    } catch (error) { 
+        res.status(500).json({ message: "Erro ao comprar título" }); 
+    }
 });
 
 route.post('/shop/equip', authMiddleware, validate(equipTitleSchema), async (req: Request, res: Response) => {
@@ -184,15 +242,26 @@ route.post('/shop/equip', authMiddleware, validate(equipTitleSchema), async (req
         const authReq = req as AuthRequest;
         const userId = authReq.user.userId;
 
+        // Verificar se o usuário existe
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "Usuário não encontrado" });
         
-        if (!user.ownedTitles || !user.ownedTitles.includes(title)) return res.status(400).json({ message: "Você não possui este título" });
+        // Obter ou criar dados de ranking
+        let rankingData = await UserRankingDataModel.findOne({ userId });
+        if (!rankingData) {
+            rankingData = await UserRankingDataModel.create({ userId, rankingPoints: 0, coins: 0 });
+        }
+
+        if (!rankingData.ownedTitles || !rankingData.ownedTitles.includes(title)) {
+            return res.status(400).json({ message: "Você não possui este título" });
+        }
         
-        user.equippedTitle = title;
-        await user.save();
-        res.json({ message: "Título equipado!", equippedTitle: user.equippedTitle });
-    } catch (error) { res.status(500).json({ message: "Erro ao equipar título" }); }
+        rankingData.equippedTitle = title;
+        await rankingData.save();
+        res.json({ message: "Título equipado!", equippedTitle: rankingData.equippedTitle });
+    } catch (error) { 
+        res.status(500).json({ message: "Erro ao equipar título" }); 
+    }
 });
 
 export default route;

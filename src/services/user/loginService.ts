@@ -1,4 +1,6 @@
 import { UserModel } from "../../data/documents/userDocument.js";
+import { UserRankingDataModel } from "../../data/documents/userRankingDataDocument.js";
+import { CompletedChallengeModel } from "../../data/documents/completedChallengeDocument.js";
 import { generateToken } from "../../auth/token.js";
 import { BadRequestException } from "../../exceptions/httpException.js";
 import { comparePassword } from "../passwordHasher.js";
@@ -29,17 +31,20 @@ export const loginUserService = async (credentials: LoginUserDto) => {
     roles: userDocument.roles as any
   });
 
+  // Buscar dados de ranking (podem não existir ainda)
+  const rankingData = await UserRankingDataModel.findOne({ userId: userDocument._id });
+  const completedChallenges = await CompletedChallengeModel.find({ userId: userDocument._id }).select('challengeDay');
+
   return {
     id: userDocument._id.toString(),
     username: userDocument.username,
     email: userDocument.email,
     profileImageUrl: userDocument.profileImageUrl,
-    roles: userDocument.roles, // <--- ADICIONADO: Agora o frontend vai saber quem é Admin!
-    coins: userDocument.coins || 0,
-    rankingPoints: userDocument.rankingPoints || 0,
-    completedChallenges: userDocument.completedChallenges || [],
-    ownedTitles: userDocument.ownedTitles || [],
-    equippedTitle: userDocument.equippedTitle || null,
+    coins: rankingData?.coins || 0,
+    rankingPoints: rankingData?.rankingPoints || 0,
+    completedChallenges: completedChallenges.map(c => c.challengeDay),
+    ownedTitles: rankingData?.ownedTitles || [],
+    equippedTitle: rankingData?.equippedTitle || null,
     token,
   };
 };

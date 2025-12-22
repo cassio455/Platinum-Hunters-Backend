@@ -110,6 +110,11 @@ export function registerUserPaths(registry: OpenAPIRegistry): void {
                                 username: z.string(),
                                 email: z.string().email(),
                                 profileImageUrl: z.string().optional(),
+                                coins: z.number(),
+                                rankingPoints: z.number(),
+                                completedChallenges: z.array(z.number()),
+                                ownedTitles: z.array(z.string()),
+                                equippedTitle: z.string().nullable(),
                                 token: z.string()
                             })
                         }),
@@ -119,6 +124,12 @@ export function registerUserPaths(registry: OpenAPIRegistry): void {
                                 id: "550e8400-e29b-41d4-a716-446655440000",
                                 username: "johndoe",
                                 email: "john@example.com",
+                                profileImageUrl: "https://example.com/profile.jpg",
+                                coins: 100,
+                                rankingPoints: 250,
+                                completedChallenges: [1, 2, 3],
+                                ownedTitles: ["🌸 Explorador de Sakura 🌸"],
+                                equippedTitle: "🌸 Explorador de Sakura 🌸",
                                 token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                             }
                         }

@@ -4,14 +4,24 @@ import { registerLibraryPaths } from './paths/library.js';
 import { registerGamesPaths } from './paths/games.js';
 import { registerGenresPaths } from './paths/genres.js';
 import { registerPlatformsPaths } from './paths/platforms.js';
+import { registerRankingPaths } from './paths/ranking.js';
 
 const registry = new OpenAPIRegistry();
+
+// Registrar o esquema de segurança JWT
+registry.registerComponent('securitySchemes', 'bearerAuth', {
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+    description: 'Enter your JWT token'
+});
 
 registerUserPaths(registry);
 registerLibraryPaths(registry);
 registerGamesPaths(registry);
 registerGenresPaths(registry);
 registerPlatformsPaths(registry);
+registerRankingPaths(registry);
 
 const generator = new OpenApiGeneratorV3(registry.definitions);
 const doc = generator.generateDocument({
@@ -19,7 +29,7 @@ const doc = generator.generateDocument({
     info: { 
         title: 'Platinum Hunters API', 
         version: '1.0.0',
-        description: 'API for managing users, games and game library'
+        description: 'API for managing users, games, library, ranking and shop'
     },
     servers: [
         {

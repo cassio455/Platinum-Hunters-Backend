@@ -11,14 +11,11 @@ import platformRoutes from './routes/platforms.js';
 import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import rankingRoutes from './routes/ranking.js'
-import { seedDatabase } from './data/seeder.js'; 
 
 const app = express()
 const PORT = process.env.PORT || 3000
 
-connectDB().then(() => {
-    seedDatabase(); 
-});
+connectDB();
 
 app.use(express.json())
 app.use(cors())
