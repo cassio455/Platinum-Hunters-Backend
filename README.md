@@ -109,3 +109,4 @@ src/
 - `DELETE /library/custom-games/:id` - Deletar jogo
 
 ## 👥 Autores
+
