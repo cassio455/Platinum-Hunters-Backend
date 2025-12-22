@@ -43,7 +43,7 @@ route.get('/ranking', async (req: Request, res: Response) => {
         const users = await UserModel.find()
             .sort({ rankingPoints: -1 })
             .limit(50)
-            .select('username rankingPoints coins equippedTitle profileImageUrl platinums totalTrophies completedChallenges');
+            .select('username rankingPoints coins equippedTitle profileImageUrl completedChallenges');
         
         const formattedUsers = users.map(u => ({
             id: u._id,
