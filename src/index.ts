@@ -1,4 +1,3 @@
-// src/index.ts
 import 'dotenv/config'
 import express, { type Request, type Response } from "express"
 import swaggerUi from "swagger-ui-express"
@@ -11,20 +10,20 @@ import genreRoutes from './routes/genres.js';
 import platformRoutes from './routes/platforms.js';
 import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
+import rankingRoutes from './routes/ranking.js'
 
 const app = express()
 const PORT = process.env.PORT || 3000
 
 connectDB();
 
-// Middlewares globais
 app.use(express.json())
 app.use(cors())
 
-// Rotas
-app.use('/swagger', swaggerUi.serve, swaggerUi.setup(doc))
-app.use(userRoutes)
-app.use(libraryRoutes)
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(doc));
+app.use(userRoutes);
+app.use(libraryRoutes);
+app.use(rankingRoutes);
 app.use(gameRoutes);
 app.use(genreRoutes);
 app.use(platformRoutes);
@@ -33,9 +32,7 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Hello, World!')
 })
 
-// Middleware para rotas não encontradas
 app.use(notFoundHandler)
-
 app.use(errorHandler)
 
 app.listen(PORT, () => {

@@ -6,7 +6,8 @@ extendZodWithOpenApi(z);
 export const CreateUserSchema = z.object({
    username: z.string().min(5).max(20).openapi({description: "The user's unique username"}),
    email: z.string().email().openapi({description: "The user's email address"}),
-   password: z.string().min(8).max(32).openapi({description: "The user's password"})
+   password: z.string().min(8).max(32).openapi({description: "The user's password"}),
+   profileImageUrl: z.string().url().optional().openapi({description: "The user's profile image URL"})
 });
 
 export type CreateUser = z.infer<typeof CreateUserSchema>;
