@@ -6,10 +6,12 @@ import doc from "./docs/openapi.js"
 import cors from "cors"
 import libraryRoutes from './routes/library.js'
 import userRoutes from './routes/users.js'
-import gameRoutes from './routes/games.js'; // 1. IMPORTAR AS NOVAS ROTAS
+import gameRoutes from './routes/games.js'; 
 import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
-import passport from './middlewares/passportConfig.js';
+
+// REMOVIDO: import passport from './middlewares/passportConfig.js';
+
 import rankingRoutes from './routes/ranking.js'
 import trophiesRoutes from './routes/trophies.js';
 
@@ -21,13 +23,14 @@ connectDB();
 // Middlewares globais
 app.use(express.json())
 app.use(cors())
-app.use(passport.initialize());
+
+// REMOVIDO: app.use(passport.initialize());
 
 // Rotas
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(doc))
 app.use(userRoutes)
 app.use(libraryRoutes)
-app.use(gameRoutes); // 2. ADICIONAR AS NOVAS ROTAS AO APP
+app.use(gameRoutes); 
 app.use(rankingRoutes);
 app.use(trophiesRoutes);
 
@@ -38,6 +41,7 @@ app.get('/', (req: Request, res: Response) => {
 // Middleware para rotas não encontradas
 app.use(notFoundHandler)
 
+// Middleware de tratamento de erro (Zod + outros)
 app.use(errorHandler)
 
 app.listen(PORT, () => {
