@@ -90,6 +90,7 @@ src/
 ### Usuários
 - `POST /users/register` - Registrar novo usuário
 - `POST /users/login` - Autenticar usuário
+- `GET /users/me` - Obter perfil e estatísticas do usuário logado
 
 ### Jogos
 - `GET /games` - Listar jogos
@@ -107,6 +108,15 @@ src/
 - `GET /library/custom-games` - Listar seus jogos
 - `PATCH /library/custom-games/:id` - Atualizar jogo
 - `DELETE /library/custom-games/:id` - Deletar jogo
+
+### Gêneros
+- `GET /genres` - Listar gêneros (com busca e paginação)
+
+### Plataformas
+- `GET /platforms` - Listar plataformas (com busca e paginação)
+
+### Administração
+- `POST /admins/library` - Editar guias (admin only)
 
 ## 👥 Autores
 

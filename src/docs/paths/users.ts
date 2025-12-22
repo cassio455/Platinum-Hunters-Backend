@@ -150,4 +150,108 @@ export function registerUserPaths(registry: OpenAPIRegistry): void {
             },
         },
     });
+
+    registry.registerPath({
+        method: 'get',
+        path: '/users/me',
+        description: 'Get the profile and statistics of the authenticated user',
+        summary: 'Get user profile',
+        tags: ['Users'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+            200: {
+                description: 'User profile retrieved successfully',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string(),
+                            data: z.object({
+                                user: z.object({
+                                    id: z.string().uuid(),
+                                    username: z.string(),
+                                    email: z.string().email(),
+                                    profileImageUrl: z.string().optional(),
+                                    roles: z.array(z.string()),
+                                    createdAt: z.string().datetime(),
+                                    updatedAt: z.string().datetime()
+                                }),
+                                statistics: z.object({
+                                    totalGamesInLibrary: z.number(),
+                                    totalPlatinum: z.number(),
+                                    totalCompleted: z.number(),
+                                    totalPlaying: z.number(),
+                                    totalWishlist: z.number(),
+                                    totalAbandoned: z.number(),
+                                    totalCustomGames: z.number(),
+                                    totalHoursPlayed: z.number(),
+                                    averageProgress: z.number()
+                                })
+                            })
+                        }),
+                        example: {
+                            message: "User profile retrieved successfully",
+                            data: {
+                                user: {
+                                    id: "550e8400-e29b-41d4-a716-446655440000",
+                                    username: "johndoe",
+                                    email: "john@example.com",
+                                    profileImageUrl: "https://example.com/profile.jpg",
+                                    roles: ["USER"],
+                                    createdAt: "2025-01-01T10:00:00.000Z",
+                                    updatedAt: "2025-01-15T14:30:00.000Z"
+                                },
+                                statistics: {
+                                    totalGamesInLibrary: 45,
+                                    totalPlatinum: 12,
+                                    totalCompleted: 8,
+                                    totalPlaying: 15,
+                                    totalWishlist: 7,
+                                    totalAbandoned: 3,
+                                    totalCustomGames: 5,
+                                    totalHoursPlayed: 324.5,
+                                    averageProgress: 67.8
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            401: {
+                description: 'Unauthorized - Invalid or missing token',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string()
+                        }),
+                        example: {
+                            message: "Unauthorized"
+                        }
+                    }
+                }
+            },
+            404: {
+                description: 'User not found',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string()
+                        }),
+                        example: {
+                            message: "User not found"
+                        }
+                    }
+                }
+            },
+            500: {
+                description: 'Internal server error',
+                content: {
+                    'application/json': {
+                        schema: z.object({
+                            message: z.string()
+                        })
+                    }
+                }
+            }
+        }
+    });
 }

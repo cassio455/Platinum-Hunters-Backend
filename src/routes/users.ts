@@ -3,6 +3,10 @@ import { createUserValidation, loginUserValidation } from "../models/schemas/use
 import { validate } from "../middlewares/validateSchema.js";
 import { createUserService } from "../services/user/createUserService.js";
 import { loginUserService } from "../services/user/loginService.js";
+import { getUserProfileService } from "../services/user/getUserProfileService.js";
+import { authMiddleware, AuthRequest } from "../middlewares/authMiddleware.js";
+import { authorize } from "../middlewares/authorize.js";
+import { UserRole } from "../models/user.js";
 
 const route = Router();
 
