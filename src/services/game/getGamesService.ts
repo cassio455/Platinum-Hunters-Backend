@@ -13,7 +13,8 @@ type GetGamesInput = {
 
 export const getGamesService = async (input: GetGamesInput) => {
   const { page = 1, q, filters = {} } = input;
-  const limit = Math.min(input.limit || 20, 50);
+  
+  const limit = Math.min(input.limit || 180, 180);
 
   const filterQuery: any = {};
   

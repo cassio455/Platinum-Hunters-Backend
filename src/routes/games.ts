@@ -23,7 +23,7 @@ route.get(
       
       const result = await getGamesService({
         page: page ? parseInt(page as string) : 1,
-        limit: limit ? parseInt(limit as string) : 20,
+        limit: limit ? parseInt(limit as string) : 180,
         q: q as string | undefined
       });
       
@@ -72,7 +72,7 @@ route.post(
 
       const result = await getGamesService({
         page: page || 1,
-        limit: limit || 20,
+        limit: limit || 180,
         filters: { genres, plataformas, sort }
       });
       

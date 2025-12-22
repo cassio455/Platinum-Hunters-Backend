@@ -1,4 +1,3 @@
-// src/models/schemas/game.ts
 import { z } from 'zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 

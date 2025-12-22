@@ -1,7 +1,7 @@
-// src/data/documents/gameDocument.ts
+
 import mongoose, { Schema, Document } from 'mongoose';
 
-// Interface para os ratings (baseado no db.json)
+
 interface IRating extends Document {
   id: number;
   title: string;
@@ -9,9 +9,9 @@ interface IRating extends Document {
   percent: number;
 }
 
-// Interface principal do Jogo
+
 export interface IGameDocument extends Document {
-  _id: string; // Mapeando 'id' do db.json para '_id'
+  _id: string;
   nome: string;
   ano_de_lancamento: number;
   playtime: number;
@@ -32,7 +32,7 @@ const RatingSchema = new Schema<IRating>({
 
 const GameSchema = new Schema<IGameDocument>(
   {
-    _id: { // Usando _id como string para aceitar o 'id' do db.json
+    _id: { 
       type: String,
       required: true
     },
@@ -42,18 +42,16 @@ const GameSchema = new Schema<IGameDocument>(
     plataformas: { type: [String] },
     backgroundimage: { type: String },
     rating: { type: Number },
-    ratings: { type: [RatingSchema] }, // Schema aninhado
+    ratings: { type: [RatingSchema] },
     ratings_count: { type: Number },
     genres: { type: [String] }
   },
   {
-    timestamps: true, // Adiciona createdAt e updatedAt
-    _id: false, // Já que estamos definindo _id manualmente
-    collection: 'games' // Especifica o nome da coleção no MongoDB
+    timestamps: true, 
+    _id: false,
+    collection: 'games' 
   }
 );
-
-// Adiciona um índice de texto no campo 'nome' para otimizar a busca
 GameSchema.index({ nome: 'text' });
 
 export const GameModel = mongoose.model<IGameDocument>('Game', GameSchema);
