@@ -11,6 +11,7 @@ import platformRoutes from './routes/platforms.js';
 import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import rankingRoutes from './routes/ranking.js'
+import trophyRoutes from './routes/trophies.js';
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -27,6 +28,7 @@ app.use(rankingRoutes);
 app.use(gameRoutes);
 app.use(genreRoutes);
 app.use(platformRoutes);
+app.use(trophyRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, World!')

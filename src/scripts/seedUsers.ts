@@ -1,10 +1,10 @@
+import 'dotenv/config'; 
+
 import mongoose from 'mongoose';
 import { createUserService } from '../services/user/createUserService.js';
+import { UserModel } from '../data/documents/userDocument.js';
 import { UserRankingDataModel } from '../data/documents/userRankingDataDocument.js';
 import { CompletedChallengeModel } from '../data/documents/completedChallengeDocument.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const PLACEHOLDER_USERS = [
     {
@@ -63,56 +63,57 @@ const PLACEHOLDER_USERS = [
 
 export const seedUsers = async () => {
   try {
-    console.log('🌱 Starting placeholder users seed...');
-    console.log('🔑 Default password for all test users: "TestPass123"');
-
-    console.log(`📦 Found ${PLACEHOLDER_USERS.length} placeholder users to seed`);
-
-    let usersCreated = 0;
-    let usersSkipped = 0;
+    console.log('🌱 Starting smart users seed...');
+    
+    let usersProcessed = 0;
 
     for (const userData of PLACEHOLDER_USERS) {
-      // Verificar se o usuário já existe
-      const { findUserByEmail } = await import('../services/user/createUserService.js');
-      const existing = await findUserByEmail(userData.email);
-      
-      if (existing) {
-        console.log(`   ⏭️  Skipping ${userData.username} (already exists)`);
-        usersSkipped++;
-        continue;
-      }
+      let userId: string;
 
-      // Criar usuário usando createUserService
-      const newUser = await createUserService({
-        username: userData.username,
-        email: userData.email,
-        password: userData.password,
-        profileImageUrl: userData.profileImageUrl
-      });
+      const existingUser = await UserModel.findOne({ email: userData.email });
 
-      // Criar dados de ranking
-      await UserRankingDataModel.create({
-        userId: newUser.id,
-        ...userData.rankingData
-      });
-
-      // Criar registros de desafios completados
-      for (const challengeDay of userData.completedChallenges) {
-        await CompletedChallengeModel.create({
-          userId: newUser.id,
-          challengeDay,
-          pointsEarned: 50 // Valor padrão, pode ser ajustado
+      if (existingUser) {
+        console.log(`   🔄 User ${userData.username} already exists. Updating ranking data...`);
+        userId = existingUser._id.toString();
+      } else {
+        console.log(`   ✨ Creating new user: ${userData.username}`);
+        const newUser = await createUserService({
+            username: userData.username,
+            email: userData.email,
+            password: userData.password,
+            profileImageUrl: userData.profileImageUrl
         });
+        userId = newUser.id;
       }
 
-      console.log(`   ✅ Created ${userData.username}`);
-      usersCreated++;
+      await UserRankingDataModel.findOneAndUpdate(
+        { userId: userId },
+        {
+            userId: userId,
+            rankingPoints: userData.rankingData.rankingPoints,
+            coins: userData.rankingData.coins,
+            ownedTitles: userData.rankingData.ownedTitles,
+            equippedTitle: userData.rankingData.equippedTitle
+        },
+        { upsert: true, new: true }
+      );
+
+      for (const challengeDay of userData.completedChallenges) {
+        await CompletedChallengeModel.updateOne(
+            { userId: userId, challengeDay: challengeDay },
+            { 
+                userId: userId, 
+                challengeDay: challengeDay,
+                pointsEarned: 50 
+            },
+            { upsert: true }
+        );
+      }
+
+      usersProcessed++;
     }
 
-    console.log(`\n✅ Users created: ${usersCreated}`);
-    console.log(`⏭️  Users skipped: ${usersSkipped}`);
-
-    return usersCreated;
+    console.log(`\n✅ Processed ${usersProcessed} users successfully!`);
   } catch (error: any) {
     console.error('❌ Error seeding users:', error.message);
     throw error;
@@ -124,24 +125,21 @@ const runSeed = async () => {
     const mongoUri = process.env.MONGODB_URI_LOCAL || process.env.MONGODB_URI;
     
     if (!mongoUri) {
-      console.error('❌ MONGODB_URI_LOCAL ou MONGODB_URI not found in environment variables');
-      process.exit(1);
+        console.error('❌ MongoDB URI not found!');
+        process.exit(1);
     }
 
-    const isLocal = mongoUri === process.env.MONGODB_URI_LOCAL;
-    console.log(`🔌 Connecting to MongoDB ${isLocal ? 'LOCAL' : 'ATLAS'}...`);
     await mongoose.connect(mongoUri);
-    console.log(`✅ Connected to MongoDB ${isLocal ? 'LOCAL' : 'ATLAS'}!`);
+    console.log(`✅ Connected to DB to run seed.`);
 
     await seedUsers();
 
-    console.log('🎉 Seed completed successfully!');
+    console.log('🎉 Seed finished!');
   } catch (error) {
     console.error('💥 Seed failed:', error);
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-    console.log('👋 Disconnected from MongoDB');
   }
 };
 

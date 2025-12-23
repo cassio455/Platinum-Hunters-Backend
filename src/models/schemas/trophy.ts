@@ -25,7 +25,7 @@ export const toggleAllTrophiesSchema = z.object({
 export const createTrophySchema = z.object({
   body: z.object({
     gameId: z.string().min(1),
-    name: z.string().min(1,
+    name: z.string().min(1, "Name is required"),
     description: z.string().min(1, "Description is required"),
     difficulty: z.string().default("bronze")
   })
