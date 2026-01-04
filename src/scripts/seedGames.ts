@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { GameModel } from '../data/documents/gameDocument.js';
+import { TrophyDataModel } from '../models/schemas/trophyData.js';
 import { generateUUID } from '../utils/uuid.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -33,6 +34,18 @@ interface DataFile {
   games: RawGameData[];
 }
 
+interface Achievement {
+  id: number;
+  name: string;
+  description: string;
+  image?: string;
+  percent?: string;
+}
+
+interface AchievementsFile {
+  [gameSequentialId: string]: Achievement[];
+}
+
 export const seedGames = async () => {
   try {
     console.log('🌱 Starting games seed...');
@@ -41,45 +54,98 @@ export const seedGames = async () => {
     const rawData = readFileSync(dataPath, 'utf-8');
     const data: DataFile = JSON.parse(rawData);
 
+    const achievementsPath = join(__dirname, '../../achievements.json');
+    const rawAchievements = readFileSync(achievementsPath, 'utf-8');
+    const achievements: AchievementsFile = JSON.parse(rawAchievements);
+
     if (!data.games || data.games.length === 0) {
       console.log('⚠️  No games found in data.json');
       return;
     }
 
     console.log(`📦 Found ${data.games.length} games to seed`);
+    console.log(`🏆 Found achievements for ${Object.keys(achievements).length} games`);
 
-    const existingCount = await GameModel.countDocuments();
-    if (existingCount > 0) {
-      console.log(`🗑️  Removing ${existingCount} existing games...`);
+    const existingGamesCount = await GameModel.countDocuments();
+    const existingTrophiesCount = await TrophyDataModel.countDocuments({ isCustom: false });
+    
+    if (existingGamesCount > 0) {
+      console.log(`🗑️  Removing ${existingGamesCount} existing games...`);
       await GameModel.deleteMany({});
     }
+    
+    if (existingTrophiesCount > 0) {
+      console.log(`🗑️  Removing ${existingTrophiesCount} existing official trophies...`);
+      await TrophyDataModel.deleteMany({ isCustom: false });
+    }
 
-    const gamesToInsert = data.games.map((game) => ({
-      _id: generateUUID(),
-      nome: game.nome,
-      ano_de_lancamento: game.ano_de_lancamento,
-      playtime: game.playtime,
-      plataformas: game.plataformas || [],
-      backgroundimage: game.backgroundimage,
-      rating: game.rating,
-      ratings: game.ratings || [],
-      ratings_count: game.ratings_count,
-      genres: game.genres || []
-    }));
+    const gamesToInsert = [];
+    const trophiesToInsert = [];
+    let gamesWithAchievements = 0;
+
+    for (const game of data.games) {
+      const gameGuid = generateUUID();
+      const sequentialId = game.id;
+
+      gamesToInsert.push({
+        _id: gameGuid,
+        nome: game.nome,
+        ano_de_lancamento: game.ano_de_lancamento,
+        playtime: game.playtime,
+        plataformas: game.plataformas || [],
+        backgroundimage: game.backgroundimage,
+        rating: game.rating,
+        ratings: game.ratings || [],
+        ratings_count: game.ratings_count,
+        genres: game.genres || []
+      });
+
+      if (sequentialId && achievements[sequentialId]) {
+        const gameAchievements = achievements[sequentialId];
+        gamesWithAchievements++;
+
+        for (const achievement of gameAchievements) {
+          const trophy: any = {
+            _id: generateUUID(),
+            gameId: gameGuid, // Usar o GUID gerado, não o ID sequencial!
+            name: achievement.name,
+            description: achievement.description,
+            isCustom: false
+          };
+          
+          if (achievement.image) {
+            trophy.image = achievement.image;
+          }
+          
+          trophiesToInsert.push(trophy);
+        }
+
+        console.log(`   ✓ [${game.nome}] ${gameAchievements.length} achievements mapeados`);
+      }
+    }
 
     console.log('💾 Inserting games in bulk...');
-    const result = await GameModel.insertMany(gamesToInsert, {
+    const insertedGames = await GameModel.insertMany(gamesToInsert, {
       ordered: false,
       lean: true
     });
 
-    console.log(`✅ Successfully seeded ${result.length} games!`);
-    console.log(`📊 Sample games:`);
+    if (trophiesToInsert.length > 0) {
+      console.log('🏆 Inserting achievements in bulk...');
+      await TrophyDataModel.insertMany(trophiesToInsert, {
+        ordered: false,
+        lean: true
+      });
+    }
+
+    console.log(`\n✅ Successfully seeded ${insertedGames.length} games!`);
+    console.log(`🏆 Successfully seeded ${trophiesToInsert.length} achievements for ${gamesWithAchievements} games!`);
+    console.log(`\n📊 Sample games:`);
     console.log(`   - ${gamesToInsert[0]?.nome}`);
     console.log(`   - ${gamesToInsert[1]?.nome}`);
     console.log(`   - ${gamesToInsert[2]?.nome}`);
 
-    return result.length;
+    return insertedGames.length;
   } catch (error: any) {
     console.error('❌ Error seeding games:', error.message);
     

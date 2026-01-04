@@ -18,7 +18,9 @@
     "seed:users": "tsx src/scripts/seedUsers.ts",
     "seed:titles": "tsx src/scripts/seedTitles.ts",
     "seed:challenges": "tsx src/scripts/seedChallenges.ts",
-    "seed:admin": "tsx src/scripts/seedAdmin.ts"
+    "seed:admin": "tsx src/scripts/seedAdmin.ts",
+    "seed:all": "tsx src/scripts/seedAll.ts",
+    "fetch:achievements": "tsx src/scripts/fetchRAWGAchievements.ts"
   },
   "author": "",
   "license": "ISC",
