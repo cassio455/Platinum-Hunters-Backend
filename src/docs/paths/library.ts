@@ -134,7 +134,12 @@ export function registerLibraryPaths(registry: OpenAPIRegistry): void {
                                         ratings_count: z.number().optional(),
                                         backgroundimage: z.string().optional(),
                                         ano_de_lancamento: z.number().optional()
-                                    }).nullable()
+                                    }).nullable(),
+                                    trophyProgress: z.object({
+                                        totalCompleted: z.number(),
+                                        totalTrophies: z.number(),
+                                        progressPercentage: z.number()
+                                    })
                                 })),
                                 pagination: z.object({
                                     page: z.number(),
@@ -167,6 +172,11 @@ export function registerLibraryPaths(registry: OpenAPIRegistry): void {
                                             ratings_count: 6805,
                                             backgroundimage: "https://media.rawg.io/media/games/456/456dea5e1c7e3cd07060c14e96612001.jpg",
                                             ano_de_lancamento: 2013
+                                        },
+                                        trophyProgress: {
+                                            totalCompleted: 15,
+                                            totalTrophies: 50,
+                                            progressPercentage: 30
                                         }
                                     }
                                 ],

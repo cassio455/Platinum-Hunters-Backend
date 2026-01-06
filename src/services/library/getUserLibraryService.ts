@@ -1,5 +1,7 @@
 import { LibraryItemModel } from "../../data/documents/libraryItemDocument.js";
 import { GameModel } from "../../data/documents/gameDocument.js";
+import { TrophyProgressModel } from "../../data/documents/trophyDocument.js";
+import { TrophyDataModel } from "../../models/schemas/trophyData.js";
 import { LibraryItemStatus } from "../../models/libraryItemStatus.js";
 
 type GetLibraryInput = {
@@ -30,7 +32,21 @@ export const getUserLibraryService = async (input: GetLibraryInput) => {
   const gameIds = libraryItems.map(item => item.gameId);
   const games = await GameModel.find({ _id: { $in: gameIds } }).lean();
   
+  // Busca o progresso de troféus para os jogos
+  const trophyProgress = await TrophyProgressModel.find({ 
+    userId, 
+    gameId: { $in: gameIds } 
+  }).lean();
+  
+  // Busca o total de troféus de cada jogo
+  const trophyCounts = await TrophyDataModel.aggregate([
+    { $match: { gameId: { $in: gameIds } } },
+    { $group: { _id: "$gameId", count: { $sum: 1 } } }
+  ]);
+  
   const gamesMap = new Map(games.map(game => [game._id, game]));
+  const progressMap = new Map(trophyProgress.map(progress => [progress.gameId, progress]));
+  const trophyCountMap = new Map(trophyCounts.map(item => [item._id, item.count]));
 
   // Normaliza o filtro de nome para lowercase
   const normalizedName = name ? name.toLowerCase().trim() : null;
@@ -43,6 +59,11 @@ export const getUserLibraryService = async (input: GetLibraryInput) => {
     })
     .map(item => {
       const game = gamesMap.get(item.gameId);
+      const progress = progressMap.get(item.gameId);
+      const totalTrophies = trophyCountMap.get(item.gameId) || 0;
+      const completedCount = progress?.completedTrophies?.length || 0;
+      const progressPercentage = totalTrophies > 0 ? Math.round((completedCount / totalTrophies) * 100) : 0;
+      
       return {
         ...item,
         status: item.status,
@@ -55,7 +76,12 @@ export const getUserLibraryService = async (input: GetLibraryInput) => {
           ratings_count: game.ratings_count,
           backgroundimage: game.backgroundimage,
           ano_de_lancamento: game.ano_de_lancamento
-        } : null
+        } : null,
+        trophyProgress: {
+          totalCompleted: completedCount,
+          totalTrophies: totalTrophies,
+          progressPercentage: progressPercentage
+        }
       };
     });
 
