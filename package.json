@@ -16,6 +16,7 @@
     "seed:games": "tsx src/scripts/seedGames.ts",
     "seed:genres-and-platforms": "tsx src/scripts/seedGenresAndPlatforms.ts",
     "seed:users": "tsx src/scripts/seedUsers.ts",
+    "seed:trophies": "tsx src/scripts/seedTrophies.ts",
     "seed:titles": "tsx src/scripts/seedTitles.ts",
     "seed:challenges": "tsx src/scripts/seedChallenges.ts",
     "seed:admin": "tsx src/scripts/seedAdmin.ts",

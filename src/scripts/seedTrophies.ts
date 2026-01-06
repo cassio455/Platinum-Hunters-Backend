@@ -1,49 +1,118 @@
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
-import { TrophyDataModel } from '../models/schemas/trophyData.js'; 
-import { INITIAL_TROPHIES } from './initialTrophies.js'; 
+import { fileURLToPath } from 'url'; // <--- Importação necessária
+import { TrophyDataModel } from '../models/schemas/trophyData.js'; // Verifique se o caminho está certo para o seu projeto
 
-dotenv.config(); 
+dotenv.config();
+
+// --- CORREÇÃO DO ERRO __dirname ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// ----------------------------------
+
+interface GameEntry {
+  id: string; 
+  nome: string; 
+}
+
+interface DataJson {
+  games: GameEntry[];
+}
+
+interface AchievementRaw {
+  id: number;
+  name: string;
+  description: string;
+  image: string;
+  percent: string;
+}
+
+interface AchievementsJson {
+  [gameId: string]: AchievementRaw[];
+}
+
+const createSlug = (text: string): string => {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/:/g, '')
+    .replace(/'/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
+};
 
 const seedDatabase = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI_LOCAL || process.env.MONGODB_URI || process.env.DATABASE_URL; 
+    const mongoUri = process.env.MONGODB_URI_LOCAL || process.env.MONGODB_URI || process.env.DATABASE_URL;
     
     if (!mongoUri) {
-      console.error("❌ Erro: Não encontrei a MONGODB_URI_LOCAL ou MONGODB_URI no seu .env");
+      console.error("❌ Erro: URI do MongoDB não encontrada no .env");
       process.exit(1);
     }
 
-    const isLocal = mongoUri === process.env.MONGODB_URI_LOCAL;
-    console.log(`🔌 Conectando ao MongoDB ${isLocal ? 'LOCAL' : 'ATLAS'}...`);
+    console.log("🔌 Conectando ao MongoDB...");
     await mongoose.connect(mongoUri);
-    console.log(`✅ Conectado ao MongoDB ${isLocal ? 'LOCAL' : 'ATLAS'}!`);
+    console.log("✅ Conectado!");
+
+    // Ajuste de caminho: sai de src/scripts (..) e sai de src (..) para a raiz
+    const achievementsPath = path.join(__dirname, '../../achievements.json');
+    const dataPath = path.join(__dirname, '../../data.json');
+
+    if (!fs.existsSync(achievementsPath) || !fs.existsSync(dataPath)) {
+      throw new Error("❌ Arquivos achievements.json ou data.json não encontrados na raiz.");
+    }
+
+    const achievementsData: AchievementsJson = JSON.parse(fs.readFileSync(achievementsPath, 'utf-8'));
+    const dataJson: DataJson = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+
+    const idToSlugMap = new Map<string, string>();
+    dataJson.games.forEach(game => {
+        const slug = createSlug(game.nome);
+        idToSlugMap.set(game.id.toString(), slug);
+    });
 
     let totalInserted = 0;
 
-    console.log("🚀 Iniciando a seed (Modo: Limpar e Recriar)...");
+    console.log("🚀 Iniciando a importação...");
 
-    for (const [gameId, list] of Object.entries(INITIAL_TROPHIES)) {
-        await TrophyDataModel.deleteMany({ gameId, isCustom: false });
-        const trophiesToInsert = list.map((t: any) => ({
-            gameId,
-            name: t.name,
-            description: t.description,
-            difficulty: 'bronze',
-            isCustom: false
+    for (const [numericId, list] of Object.entries(achievementsData)) {
+        const gameSlug = idToSlugMap.get(numericId);
+
+        if (!gameSlug) {
+            console.warn(`⚠️ Jogo ID ${numericId} não encontrado no data.json. Pulando.`);
+            continue;
+        }
+
+        // Limpa troféus antigos desse jogo (apenas os do sistema)
+        await TrophyDataModel.deleteMany({ gameId: gameSlug, isCustom: false });
+
+        const trophiesToInsert = list.map(ach => ({
+            _id: ach.id.toString(),
+            gameId: gameSlug,
+            name: ach.name,
+            description: ach.description || "Sem descrição",
+            image: ach.image,
+            isCustom: false,
+            createdAt: new Date()
         }));
 
         if (trophiesToInsert.length > 0) {
-            await TrophyDataModel.insertMany(trophiesToInsert);
+            await TrophyDataModel.insertMany(trophiesToInsert, { ordered: false });
             totalInserted += trophiesToInsert.length;
-            console.log(`   > [${gameId}] Atualizado: ${trophiesToInsert.length} troféus inseridos.`);
+            console.log(`   > [${gameSlug}] Importados: ${trophiesToInsert.length} troféus.`);
         }
     }
 
-    console.log(`\n🏁 Concluído! Total de ${totalInserted} troféus oficiais restaurados no banco.`);
+    console.log(`\n🏁 Sucesso! Total de ${totalInserted} troféus inseridos.`);
 
   } catch (error) {
-    console.error("❌ Erro ao rodar a seed:", error);
+    console.error("❌ Erro fatal na seed:", error);
   } finally {
     await mongoose.disconnect();
     process.exit();

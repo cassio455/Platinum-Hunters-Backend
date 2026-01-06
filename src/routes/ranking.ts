@@ -4,6 +4,10 @@ import { validate } from '../middlewares/validateSchema.js';
 import { UserModel } from '../data/documents/userDocument.js';
 import { UserRankingDataModel } from '../data/documents/userRankingDataDocument.js';
 import { CompletedChallengeModel } from '../data/documents/completedChallengeDocument.js';
+// IMPORTANTE: Importando os modelos de troféus
+import { TrophyProgressModel } from '../data/documents/trophyDocument.js';
+import { TrophyDataModel } from '../models/schemas/trophyData.js'; 
+
 import ChallengeModel from '../models/ChallengeModel.js';
 import TitleModel from '../models/TitleModel.js';
 import { 
@@ -41,33 +45,75 @@ route.get('/challenges', async (req: Request, res: Response) => {
     }
 });
 
+// --- ROTA DE RANKING ATUALIZADA ---
 route.get('/ranking', async (req: Request, res: Response) => {
     try {
+        // 1. Buscar a lista de usuários ordenada por pontos
         const rankingData = await UserRankingDataModel.find()
             .sort({ rankingPoints: -1 })
             .limit(50)
             .populate('userId', 'username profileImageUrl');
+
+        // 2. Criar um mapa de "Total de Troféus por Jogo"
+        // Isso evita fazer milhares de consultas dentro do loop
+        const allTrophiesCount = await TrophyDataModel.aggregate([
+            { $group: { _id: "$gameId", count: { $sum: 1 } } }
+        ]);
         
+        // Ex: { "elden-ring": 42, "god-of-war": 35 }
+        const gameTotalTrophiesMap: Record<string, number> = {};
+        allTrophiesCount.forEach(item => {
+            gameTotalTrophiesMap[item._id] = item.count;
+        });
+        
+        // 3. Formatar os dados de cada usuário calculando Platinas e Troféus
         const formattedUsers = await Promise.all(rankingData.map(async (data: any) => {
-            const completedChallenges = await CompletedChallengeModel.find({ userId: data.userId._id }).select('challengeDay');
+            const userId = data.userId._id;
+
+            // Buscar desafios completados
+            const completedChallenges = await CompletedChallengeModel.find({ userId }).select('challengeDay');
             
+            // Buscar progresso de troféus deste usuário
+            const userTrophyProgress = await TrophyProgressModel.find({ userId });
+
+            let totalTrophiesCount = 0;
+            let platinumsCount = 0;
+
+            userTrophyProgress.forEach(progress => {
+                const userCount = progress.completedTrophies ? progress.completedTrophies.length : 0;
+                totalTrophiesCount += userCount;
+
+                // Verificar Platina: Usuário tem todos os troféus que existem no banco para aquele jogo?
+                const maxTrophiesForGame = gameTotalTrophiesMap[progress.gameId] || 0;
+                
+                // Só conta platina se o jogo tiver troféus cadastrados e o usuário tiver pego todos
+                if (maxTrophiesForGame > 0 && userCount >= maxTrophiesForGame) {
+                    platinumsCount++;
+                }
+            });
+
             return {
-                id: data.userId._id,
+                id: userId,
                 name: data.userId.username,
                 avatar: data.userId.profileImageUrl || "https://i.pravatar.cc/100?img=3",
                 rankingPoints: data.rankingPoints || 0,
                 equippedTitle: data.equippedTitle,
-                completedChallenges: completedChallenges.map((c: any) => c.challengeDay)
+                completedChallenges: completedChallenges.map((c: any) => c.challengeDay),
+                // Novos campos calculados
+                platinums: platinumsCount,
+                totalTrophies: totalTrophiesCount
             };
         }));
         
         res.json(formattedUsers);
     } catch (error) {
+        console.error("Erro no ranking:", error);
         res.status(500).json({ message: "Erro ao buscar ranking" });
     }
 });
 
 // --- Rotas Protegidas ---
+// ... (O resto do arquivo continua exatamente igual, sem alterações)
 
 // Gerenciar Títulos
 route.post('/shop/manage/title', authMiddleware, authorize(UserRole.ADMIN), validate(manageTitleSchema), async (req: Request, res: Response) => {
@@ -151,32 +197,27 @@ route.post('/ranking/complete', authMiddleware, validate(completeChallengeSchema
         const authReq = req as AuthRequest;
         const userId = authReq.user.userId;
 
-        // Verificar se o usuário existe
         const user = await UserModel.findById(userId);
         if (!user) {
             return res.status(404).json({ message: "Usuário não encontrado" });
         }
 
-        // Buscar o desafio para obter os pontos corretos
         const challenge = await ChallengeModel.findOne({ day });
         if (!challenge) {
             return res.status(404).json({ message: "Desafio não encontrado" });
         }
 
-        // Verificar se já completou
         const alreadyCompleted = await CompletedChallengeModel.findOne({ userId, challengeDay: day });
         if (alreadyCompleted) {
             return res.status(400).json({ message: "Desafio já completado." });
         }
 
-        // Criar registro de desafio completado
         await CompletedChallengeModel.create({
             userId,
             challengeDay: day,
             pointsEarned: challenge.points
         });
 
-        // Atualizar ou criar dados de ranking
         let rankingData = await UserRankingDataModel.findOne({ userId });
         if (!rankingData) {
             rankingData = await UserRankingDataModel.create({ userId, rankingPoints: 0, coins: 0 });
@@ -186,7 +227,6 @@ route.post('/ranking/complete', authMiddleware, validate(completeChallengeSchema
         rankingData.coins += challenge.points;
         await rankingData.save();
 
-        // Buscar todos os desafios completados
         const completedChallenges = await CompletedChallengeModel.find({ userId }).select('challengeDay');
 
         res.json({ 
@@ -208,11 +248,9 @@ route.post('/shop/buy', authMiddleware, validate(buyTitleSchema), async (req: Re
         const authReq = req as AuthRequest;
         const userId = authReq.user.userId;
 
-        // Verificar se o usuário existe
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "Usuário não encontrado" });
         
-        // Obter ou criar dados de ranking
         let rankingData = await UserRankingDataModel.findOne({ userId });
         if (!rankingData) {
             rankingData = await UserRankingDataModel.create({ userId, rankingPoints: 0, coins: 0 });
@@ -242,11 +280,9 @@ route.post('/shop/equip', authMiddleware, validate(equipTitleSchema), async (req
         const authReq = req as AuthRequest;
         const userId = authReq.user.userId;
 
-        // Verificar se o usuário existe
         const user = await UserModel.findById(userId);
         if (!user) return res.status(404).json({ message: "Usuário não encontrado" });
         
-        // Obter ou criar dados de ranking
         let rankingData = await UserRankingDataModel.findOne({ userId });
         if (!rankingData) {
             rankingData = await UserRankingDataModel.create({ userId, rankingPoints: 0, coins: 0 });
