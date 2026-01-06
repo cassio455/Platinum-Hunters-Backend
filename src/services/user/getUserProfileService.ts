@@ -2,6 +2,8 @@ import { UserModel } from "../../data/documents/userDocument.js";
 import { LibraryItemModel } from "../../data/documents/libraryItemDocument.js";
 import { CustomGameModel } from "../../data/documents/customGameDocument.js";
 import { UserRankingDataModel } from "../../data/documents/userRankingDataDocument.js";
+// IMPORTANTE: Importar o modelo de Progresso de Troféus
+import { TrophyProgressModel } from "../../data/documents/trophyDocument.js"; 
 import { LibraryItemStatus } from "../../models/libraryItemStatus.js";
 import { HttpException } from "../../exceptions/httpException.js";
 
@@ -18,17 +20,14 @@ export const getUserProfileService = async ({ userId }: GetUserProfileInput) => 
 
   const rankingData = await UserRankingDataModel.findOne({ userId });
 
+  // 1. Estatísticas da Biblioteca Manual (Mantemos para jogos, horas, playing, etc)
   const libraryStats = await LibraryItemModel.aggregate([
     { $match: { userId } },
     {
       $group: {
         _id: null,
         totalGames: { $sum: 1 },
-        totalPlatinum: {
-          $sum: {
-            $cond: [{ $eq: ['$status', LibraryItemStatus.PLATINUM] }, 1, 0]
-          }
-        },
+        // totalPlatinum: Vamos substituir pelo cálculo automático abaixo
         totalCompleted: {
           $sum: {
             $cond: [{ $eq: ['$status', LibraryItemStatus.COMPLETED] }, 1, 0]
@@ -55,11 +54,53 @@ export const getUserProfileService = async ({ userId }: GetUserProfileInput) => 
     }
   ]);
 
+  // 2. CÁLCULO AUTOMÁTICO DE PLATINAS (Baseado nos troféus reais)
+  // Verifica: Se (Troféus do Usuario == Total de Troféus do Jogo) -> É Platina
+  const realPlatinumCount = await TrophyProgressModel.aggregate([
+    { $match: { userId } },
+    {
+      $lookup: {
+        from: 'trophydatas', // Nome da coleção do TrophyDataModel no Mongo
+        localField: 'gameId',
+        foreignField: 'gameId',
+        as: 'allGameTrophies'
+      }
+    },
+    {
+      $project: {
+        gameId: 1,
+        userTrophiesCount: { 
+            $cond: { 
+                if: { $isArray: "$completedTrophies" }, 
+                then: { $size: "$completedTrophies" }, 
+                else: 0 
+            } 
+        },
+        totalGameTrophies: { $size: "$allGameTrophies" }
+      }
+    },
+    {
+      // Filtra apenas onde o usuário tem TODOS os troféus (e o jogo tem pelo menos 1 troféu)
+      $match: {
+        $expr: {
+          $and: [
+            { $gt: ["$totalGameTrophies", 0] },
+            { $gte: ["$userTrophiesCount", "$totalGameTrophies"] }
+          ]
+        }
+      }
+    },
+    {
+      $count: "totalPlatinums"
+    }
+  ]);
+
+  const autoPlatinumValue = realPlatinumCount.length > 0 ? realPlatinumCount[0].totalPlatinums : 0;
+
   const customGamesCount = await CustomGameModel.countDocuments({ userId });
 
   const stats = libraryStats.length > 0 ? libraryStats[0] : {
     totalGames: 0,
-    totalPlatinum: 0,
     totalCompleted: 0,
     totalPlaying: 0,
     totalWishlist: 0,
@@ -81,7 +122,8 @@ export const getUserProfileService = async ({ userId }: GetUserProfileInput) => 
     },
     statistics: {
       totalGamesInLibrary: stats.totalGames,
-      totalPlatinum: stats.totalPlatinum,
+      // AQUI ESTÁ A MUDANÇA: Usamos o valor calculado automaticamente
+      totalPlatinum: autoPlatinumValue, 
       totalCompleted: stats.totalCompleted,
       totalPlaying: stats.totalPlaying,
       totalWishlist: stats.totalWishlist,

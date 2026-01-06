@@ -9,9 +9,10 @@ export const getGamesValidation = z.object({
       (val) => !val || parseInt(val) >= 1,
       { message: 'Page must be at least 1' }
     ),
+    // ALTERADO: Limite aumentado de 50 para 1000
     limit: z.string().regex(/^\d+$/).optional().refine(
-      (val) => !val || (parseInt(val) >= 1 && parseInt(val) <= 50),
-      { message: 'Limit must be between 1 and 50' }
+      (val) => !val || (parseInt(val) >= 1 && parseInt(val) <= 1000),
+      { message: 'Limit must be between 1 and 1000' }
     ),
     q: z.string().optional()
   }),
@@ -33,7 +34,8 @@ export const postFiltersValidation = z.object({
     plataformas: z.array(z.string()).optional(),
     sort: z.enum(['rating_desc', 'rating_asc', 'name']).optional(),
     page: z.number().int().min(1, 'Page must be at least 1').optional(),
-    limit: z.number().int().min(1, 'Limit must be at least 1').max(50, 'Limit cannot exceed 50').optional()
+    // ALTERADO: Limite aumentado para 1000 aqui também para manter consistência
+    limit: z.number().int().min(1, 'Limit must be at least 1').max(1000, 'Limit cannot exceed 1000').optional()
   }),
   params: z.object({}),
   query: z.object({})
