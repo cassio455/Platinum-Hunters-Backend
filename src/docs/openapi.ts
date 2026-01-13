@@ -5,6 +5,7 @@ import { registerGamesPaths } from './paths/games.js';
 import { registerGenresPaths } from './paths/genres.js';
 import { registerPlatformsPaths } from './paths/platforms.js';
 import { registerRankingPaths } from './paths/ranking.js';
+import { registerGuidePaths } from './paths/guides.js';
 
 const registry = new OpenAPIRegistry();
 
@@ -22,6 +23,7 @@ registerGamesPaths(registry);
 registerGenresPaths(registry);
 registerPlatformsPaths(registry);
 registerRankingPaths(registry);
+registerGuidePaths(registry);
 
 const generator = new OpenApiGeneratorV3(registry.definitions);
 const doc = generator.generateDocument({
