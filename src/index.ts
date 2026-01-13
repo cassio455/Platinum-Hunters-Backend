@@ -12,6 +12,7 @@ import { connectDB } from './data/database.js'
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js'
 import rankingRoutes from './routes/ranking.js'
 import trophyRoutes from './routes/trophies.js';
+import { guideRouter } from "./routes/guide.js";
 
 const app = express()
 const PORT = process.env.PORT || 3000
@@ -29,6 +30,7 @@ app.use(gameRoutes);
 app.use(genreRoutes);
 app.use(platformRoutes);
 app.use(trophyRoutes);
+app.use("/guides", guideRouter);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello, World!')
